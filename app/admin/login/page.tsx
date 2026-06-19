@@ -1,18 +1,57 @@
 'use client';
 
-import { useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import Image from 'next/image';
 
 export default function AdminLoginPage() {
-  const [email, setEmail] = useState('vishnu');
-  const [password, setPassword] = useState('0045');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
   
   const router = useRouter();
   const supabase = createClient();
+
+  useLayoutEffect(() => {
+    const clearForm = () => {
+      if (formRef.current) {
+        formRef.current.reset();
+        formRef.current.querySelectorAll('input').forEach((input) => {
+          input.value = '';
+          input.setAttribute('value', '');
+        });
+      }
+      setEmail('');
+      setPassword('');
+      setError(null);
+    };
+
+    clearForm();
+
+    const handlePageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) {
+        clearForm();
+      }
+    };
+
+    const frame = window.requestAnimationFrame(() => clearForm());
+    const timeout = window.setTimeout(() => clearForm(), 50);
+    const timeout2 = window.setTimeout(() => clearForm(), 250);
+    const timeout3 = window.setTimeout(() => clearForm(), 600);
+
+    window.addEventListener('pageshow', handlePageShow);
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.clearTimeout(timeout);
+      window.clearTimeout(timeout2);
+      window.clearTimeout(timeout3);
+      window.removeEventListener('pageshow', handlePageShow);
+    };
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -20,12 +59,6 @@ export default function AdminLoginPage() {
     setError(null);
 
     try {
-      if (email.trim().toLowerCase() === 'vishnu' && password === '0045') {
-        document.cookie = 'admin_access=authenticated; path=/; max-age=3600; SameSite=Lax';
-        window.location.assign('/admin/dashboard');
-        return;
-      }
-
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -61,7 +94,13 @@ export default function AdminLoginPage() {
           <p className="text-[#8fa899]">Pungampatti Cricket Club</p>
         </div>
 
-        <form onSubmit={handleLogin} className="card p-8 backdrop-blur-xl bg-[#0d1f13]/80 border-[#1a6b3a]/50 shadow-2xl relative overflow-hidden">
+        <form
+          ref={formRef}
+          onSubmit={handleLogin}
+          autoComplete="off"
+          suppressHydrationWarning
+          className="card p-8 backdrop-blur-xl bg-[#0d1f13]/80 border-[#1a6b3a]/50 shadow-2xl relative overflow-hidden"
+        >
           {/* Subtle top border glow */}
           <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#1a6b3a] via-[#d4a017] to-[#1a6b3a]"></div>
 
@@ -75,11 +114,22 @@ export default function AdminLoginPage() {
             <label className="form-label" htmlFor="email">Username</label>
             <input
               id="email"
+              name="admin_login_email"
               type="text"
+              autoComplete="off"
+              autoCapitalize="none"
+              spellCheck={false}
+              data-1p-ignore="true"
+              data-lpignore="true"
               className="form-input bg-[#061409]/50"
               placeholder="Enter username"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              onBlur={() => {
+                if (!email.trim()) {
+                  setEmail('');
+                }
+              }}
               required
             />
           </div>
@@ -88,11 +138,22 @@ export default function AdminLoginPage() {
             <label className="form-label" htmlFor="password">Password</label>
             <input
               id="password"
+              name="admin_login_password"
               type="password"
+              autoComplete="new-password"
+              autoCapitalize="none"
+              spellCheck={false}
+              data-1p-ignore="true"
+              data-lpignore="true"
               className="form-input bg-[#061409]/50"
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              onBlur={() => {
+                if (!password.length) {
+                  setPassword('');
+                }
+              }}
               required
             />
           </div>
